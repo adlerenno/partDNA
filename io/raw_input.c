@@ -5,6 +5,7 @@
 #include "raw_input.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
 #include <fcntl.h>   /* open(), creat() - and fcntl() */
 #include "kseq.h"
