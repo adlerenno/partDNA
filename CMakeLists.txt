@@ -4,6 +4,7 @@ project(bwt VERSION 1.0.0 DESCRIPTION "Project converting different bwt represen
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_SKIP_RPATH ON)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
 
 option(ENABLE_TIME_EVALUATION "Split time needed for construction" ON)
 option(ENABLE_VERBOSE "Outputs information about steps and progress" ON)
