@@ -3,6 +3,8 @@
 //
 
 #include <stdio.h>
+#include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
+#include <fcntl.h>   /* open(), creat() - and fcntl() */
 #include "raw_output_dna.h"
 
 void write_memory_to_file_dna(char *filename, char **words, long long word_count)
