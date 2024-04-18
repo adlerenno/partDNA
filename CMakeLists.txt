@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 project(bwt VERSION 1.0.0 DESCRIPTION "Project converting different bwt representations")
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_SKIP_RPATH ON)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl")
 
 option(ENABLE_TIME_EVALUATION "Split time needed for construction" ON)
 option(ENABLE_VERBOSE "Outputs information about steps and progress" ON)
@@ -59,7 +58,12 @@ find_package(ZLIB)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDES})
 target_link_libraries(${PROJECT_NAME} PRIVATE m) # link with math library
 target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
-target_link_libraries(${PROJECT_NAME} PRIVATE /usr/local/lib/libsais64.dylib)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_link_libraries(${PROJECT_NAME} PRIVATE /usr/local/lib/libsais64.dylib)
+else()
+        target_link_libraries(${PROJECT_NAME} PRIVATE libsais64)
+endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER bwt.h)
