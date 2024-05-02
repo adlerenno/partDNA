@@ -19,18 +19,20 @@
 KSEQ_INIT(gzFile, gzread)
 
 
-void get_meta(const char *filename, size_t *max_sequence_length, size_t *sequence_count) { // TODO: Count number of symbols for statistic.
+void get_meta(const char *filename, size_t *max_sequence_length, size_t *sequence_count, float *avg_length) { // TODO: Count number of symbols for statistic.
     // Find max_sequence_length and sequence_count.
-    size_t length = 0, count = 0;
+    size_t length = 0, count = 0, sum_length = 0;
     kseq_t *seq;
     gzFile fp = gzopen(filename, "r"); // STEP 2: open the file handler
     seq = kseq_init(fp); // STEP 3: initialize seq
     while (kseq_read(seq) >= 0) {
         length = length > seq->seq.l ? length : seq->seq.l;
+        sum_length += seq->seq.l;
         count++;
     }
     *max_sequence_length = length;
     *sequence_count = count;
+    *avg_length = sum_length / count;
     kseq_destroy(seq);
     gzclose(fp);
 }

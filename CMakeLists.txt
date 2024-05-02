@@ -59,10 +59,21 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDES})
 target_link_libraries(${PROJECT_NAME} PRIVATE m) # link with math library
 target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
 
+if(NOT EXISTS "/usr/local/lib/libsais64.a")
+    message(FATAL_ERROR "libsais was not found on the standart path /usr/local/lib/libsais64.a. Use the following bash steps to install the dependency.
+    wget https://web.archive.org/web/20230309123010/https://sites.google.com/site/yuta256/sais-2.4.1.zip
+    unzip sais-2.4.1.zip
+    cd sais-2.4.1
+    mkdir -p build
+    cmake -DCMAKE_BUILD_TYPE=\"Release\" -DCMAKE_INSTALL_PREFIX=\"usr/local/lib/\" -DBUILD_EXAMPLES=OFF -DBUILD_SAIS64=ON -DBUILD_SHARED_LIBS=OFF ..
+    make
+    sudo make install")
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     target_link_libraries(${PROJECT_NAME} PRIVATE /usr/local/lib/libsais64.dylib)
 else()
-        target_link_libraries(${PROJECT_NAME} PRIVATE libsais64)
+    target_link_libraries(${PROJECT_NAME} PRIVATE sais64)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})

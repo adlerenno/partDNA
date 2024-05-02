@@ -35,12 +35,12 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 #ifdef VERBOSE
     printf("Get file meta of file %s.\n", input_filename);
 #endif
-    size_t max_sequence_length, word_count;
+    size_t max_sequence_length, word_count; float avg_length;
     char** words_dna;
     size_t* length_dna;
     if (multiline_fasta)
     {
-        get_meta(input_filename, &max_sequence_length, &word_count);
+        get_meta(input_filename, &max_sequence_length, &word_count, &avg_length);
         words_dna = calloc(word_count, sizeof (char*));
         length_dna = calloc(word_count, sizeof(size_t*));
         load_multiline_file_into_memory_dna(input_filename, max_sequence_length, words_dna, length_dna, word_count);
@@ -52,11 +52,13 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
         length_dna = calloc(word_count, sizeof(size_t*));
         load_singleline_file_into_memory_dna(input_filename, words_dna, length_dna);
         max_sequence_length = length_dna[0];
+        avg_length = (float) max_sequence_length;
     }
 
 #ifdef VERBOSE
-    printf("\tMax length of words before splitting: %zu\n", max_sequence_length);
     printf("\tWord count before splitting: %zu\n", word_count);
+    printf("\tMax length of words before splitting: %zu\n", max_sequence_length);
+    printf("\tAvg length of words before splitting: %f\n", avg_length);
     printf("Split the input now.\n");
 #endif
 
@@ -72,13 +74,16 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     copy_splitted_words_dna(cuts, words_dna, false, &splitted_words, &splitted_length);
 #ifdef VERBOSE
     size_t max_splitted_sequence_length = splitted_length[0];
+    float sum_length = splitted_length[0];
     for (int i = 1; i < splitted_word_count; ++i) {
         if (splitted_length[i] > max_splitted_sequence_length) {
             // Update max if a larger element is found
             max_splitted_sequence_length = splitted_length[i];
         }
+        sum_length += splitted_length[i];
     }
     printf("\tMax length of words after splitting: %zu\n", max_splitted_sequence_length);
+    printf("\tAvg length of words after splitting: %f\n", sum_length / splitted_word_count);
     printf("\tFinished.\n");
     printf("Write to output file %s.\n", output_filename);
 #endif
@@ -131,11 +136,11 @@ int main(int argc, char **argv) {
                 break;
             case 'o':
                 output_filename = optarg;
-                if (access(output_filename, F_OK) == 0)
+                /*if (access(output_filename, F_OK) == 0)
                 {
                     printf("Output file exists. Choose other.");
                     return -1;
-                }
+                }*/
                 break;
             case 'r':
                 run_length = atoi(optarg);

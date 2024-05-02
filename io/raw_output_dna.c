@@ -17,7 +17,7 @@ void write_memory_to_file_dna(char *filename, char **words, long long word_count
     }
 
     for (int i = 0; i < word_count; ++i) {
-        fprintf(fastaFile, ">Sequence%d\n", i + 1); // Add a header for each sequence
+        fprintf(fastaFile, ">S%d\n", i + 1); // Add a header for each sequence
         fprintf(fastaFile, "%s\n", words[i]);  // Write the DNA sequence
     }
     fclose(fastaFile);
