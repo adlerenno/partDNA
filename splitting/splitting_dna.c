@@ -508,19 +508,21 @@ void copy_splitted_words_dna(List *cuts, char** words, bool dollar_at_position_0
             panic("The end of the word is before its start during copying.");
         }
         if (dollar_at_position_0)
-        {
+        {  // TODO: Check if this case works fine.
             splitted_length[i] = se->start - se->previous_end + 1; // + 1 for the $-sign.
             splitted_words[i] = malloc((splitted_length[i] + 1) * sizeof (char)); // +1 for \0
             memcpy(&(splitted_words[i][1]), &(words[se->word_id][se->previous_end]), (splitted_length[i] - 1) * sizeof(char));
             splitted_words[i][0]='$';
+            splitted_words[i][splitted_length[i]]='\0';
         }
         else
         {
-            splitted_length[i] = se->start - se->previous_end + 1; // no $-sign here.
+            splitted_length[i] = se->start - se->previous_end; // no $-sign here.
             splitted_words[i] = malloc((splitted_length[i] + 1) * sizeof (char)); // +1 for \0
-            memcpy(&(splitted_words[i][0]), &(words[se->word_id][se->previous_end]), (splitted_length[i] - 1) * sizeof(char));
+            memcpy(&(splitted_words[i][0]), &(words[se->word_id][se->previous_end]), (splitted_length[i]) * sizeof(char));
+            splitted_words[i][splitted_length[i]]='\0';
         }
-        splitted_words[i][splitted_length[i]]='\0';
+        // splitted_words[i][splitted_length[i]]='\0';
         // printf("%zu, %s\n", splitted_length[i], splitted_words[i]);
     }
 }
