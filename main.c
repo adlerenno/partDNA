@@ -158,7 +158,7 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 int main(int argc, char **argv) {
     int opt;
     bool multiline_fasta = true;
-    int run_length = 2;
+    int run_length = 3;
     char * filename = "";
     char * output_filename = "";
     while ((opt = getopt(argc, argv, "hdi:o:r:")) != -1) {
