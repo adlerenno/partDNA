@@ -387,8 +387,8 @@ List *dna_find_splits(char** words, const size_t *word_length, size_t word_count
         name++; // to ensure that the alphabet size is correct.
 
         // Phase 3d: create name string
-        long long *recursive_input_string = malloc((list_size(&to_sort_rotations) + 1) * sizeof(long long));
-        long long *suffix_array = malloc((list_size(&to_sort_rotations) + 1) * sizeof(long long));
+        sa_int64_t *recursive_input_string = malloc((list_size(&to_sort_rotations) + 1) * sizeof(long long));
+        sa_int64_t *suffix_array = malloc((list_size(&to_sort_rotations) + 1) * sizeof(long long));
         for (size_t i = 0; i < list_size(&to_sort_rotations); i++)
         {
             recursive_input_string[i] = ((DNASortEntry *) list_get(&to_sort_rotations, i))->name;
@@ -401,7 +401,8 @@ List *dna_find_splits(char** words, const size_t *word_length, size_t word_count
         // Phase 3e: use SA_IS to create the suffix array of the name string. Note that there are 'name' different symbols.
         // if (divsufsort64(recursive_input_string, suffix_array, list_size(&to_sort_rotations) + 1)) // use divsufsort library, size of alphabet to small
         // if (sais_size_t(recursive_input_string, suffix_array, (int) list_size(&to_sort_rotations) + 1, (int) name) != 0)  // uses local implementation, not working yet
-        if (sais64_i64(recursive_input_string, suffix_array, (long long) list_size(&to_sort_rotations) + 1, (long long) name) < 0) // use yuta moris sais implementation.
+        // using cast to sa_int64_t instead of long long
+        if (sais64_i64(recursive_input_string, suffix_array, (sa_int64_t) list_size(&to_sort_rotations) + 1, (sa_int64_t) name) < 0) // use yuta moris sais implementation.
         {
             panic("Exception inside sa_is");
         }
