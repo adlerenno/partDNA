@@ -14,7 +14,7 @@ rule convert:
         "benchmark.csv"
     shell:
         """
-        {input.script} -i {input.in_file} -o {output.out_file} -r 2
+        {input.script} -i {input.in_file} -o {output.out_file} -r 3
         """
 
 rule build:
@@ -39,7 +39,8 @@ rule build_sais:
         unzip sais-2.4.1.zip
         cd sais-2.4.1
         mkdir -p build
-        cmake -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX="/usr/local/lib" -DBUILD_EXAMPLES=OFF -DBUILD_SAIS64=ON -DBUILD_SHARED_LIBS=OFF ..
+        cd build
+        cmake -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX="/usr/local" -DBUILD_EXAMPLES=OFF -DBUILD_SAIS64=ON -DBUILD_SHARED_LIBS=OFF ..
         make
         sudo make install
         """

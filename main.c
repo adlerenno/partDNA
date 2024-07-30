@@ -83,6 +83,11 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     printf("\tAvg length of words before splitting: %f\n", char_count / word_count);
     printf("Split the input now.\n");
 #endif
+    if (word_count == 0)
+    {
+        printf("Input file is empty. I abort, because there is nothing to do for me. ");
+        return;
+    }
 
     List *cuts = dna_find_splits(words_dna, length_dna, word_count, run_length);
 
