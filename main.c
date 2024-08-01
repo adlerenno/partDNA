@@ -107,21 +107,24 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 
 #ifdef VERBOSE
     printf("\tWord count after splitting: %zu\n", list_size(cuts));
-    printf("Copy words now.\n");
+    //printf("Copy words now.\n");
 #endif
     size_t splitted_word_count = list_size(cuts);
-    char** splitted_words = calloc(splitted_word_count, sizeof(char*));
-    size_t* splitted_length = calloc(splitted_word_count, sizeof(size_t*));
-    copy_splitted_words_dna(cuts, words_dna, false, &splitted_words, &splitted_length);
+    //char** splitted_words = calloc(splitted_word_count, sizeof(char*));
+    //size_t* splitted_length = calloc(splitted_word_count, sizeof(size_t*));
+
+    // copy_splitted_words_dna(cuts, words_dna, false, &splitted_words, &splitted_length);
 #ifdef VERBOSE
-    size_t max_splitted_sequence_length = splitted_length[0];
-    size_t sum_length = splitted_length[0];
+    DNASortEntry *se0 = list_get(cuts, 0);
+    size_t max_splitted_sequence_length = se0->start - se0->previous_end;
+    size_t sum_length = se0->start - se0->previous_end;
     for (int i = 1; i < splitted_word_count; ++i) {
-        if (splitted_length[i] > max_splitted_sequence_length) {
+        DNASortEntry *se = list_get(cuts, i);
+        if (se->start - se->previous_end> max_splitted_sequence_length) {
             // Update max if a larger element is found
-            max_splitted_sequence_length = splitted_length[i];
+            max_splitted_sequence_length = se->start - se->previous_end;
         }
-        sum_length += splitted_length[i];
+        sum_length += se->start - se->previous_end;
     }
     printf("\tMax length of words after splitting: %zu\n", max_splitted_sequence_length);
     printf("\tSum length of words after splitting: %zu\n", sum_length);
@@ -142,14 +145,15 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     }
     free(cuts);
 
-    write_memory_to_file_dna(output_filename, splitted_words, splitted_word_count);
+    write_splitted_words_dna_to_file(cuts, words_dna, false, output_filename);
+    //write_memory_to_file_dna(output_filename, splitted_words, splitted_word_count);
 
-    for (int i = 0; i < splitted_word_count; i++)
-    {
-        free(splitted_words[i]);
-    }
-    free(splitted_words);
-    free(splitted_length);
+    //for (int i = 0; i < splitted_word_count; i++)
+    //{
+    //    free(splitted_words[i]);
+    //}
+    //free(splitted_words);
+    //free(splitted_length);
 
 #ifdef VERBOSE
     printf("\tFinished.\n");

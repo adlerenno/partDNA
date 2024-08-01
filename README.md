@@ -7,7 +7,8 @@ partDNA is a library to partition input DNA sequences to receive a different rep
 You can build everything by:
 
 ```
-wget https://web.archive.org/web/20230309123010/https://sites.google.com/site/yuta256/sais-2.4.1.zip
+git clone https://github.com/adlerenno/partDNA.git
+cd partDNA
 unzip sais-2.4.1.zip
 cd sais-2.4.1
 mkdir -p build
@@ -16,8 +17,6 @@ cmake -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX="/usr/local" -DBUILD_E
 make
 sudo make install
 cd ../..
-git clone https://github.com/adlerenno/partDNA.git
-cd partDNA
 mkdir -p build
 cd build
 cmake ..
@@ -29,7 +28,6 @@ This installs the SA-IS suffix array construction algorithm and builds the curre
 
 ## Dependencies
 
-- [sais-2.4.1](https://web.archive.org/web/20230309123010/https://sites.google.com/site/yuta256/sais-2.4.1.zip)
 - ZLIB
 
 ## Command-Line Tool

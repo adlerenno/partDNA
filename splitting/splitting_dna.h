@@ -25,4 +25,5 @@ typedef struct DNASortEntry DNASortEntry;
  */
 List *dna_find_splits(char** words, const size_t *word_length, size_t word_count, size_t run_length_lowest_cut);
 void copy_splitted_words_dna(List *cuts, char** words, bool dollar_at_position_0, char*** splitted_words, size_t** splitted_length);
+void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_position_0, char* filename);
 #endif //BWT_SPLITTING_DNA_H

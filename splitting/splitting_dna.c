@@ -527,3 +527,38 @@ void copy_splitted_words_dna(List *cuts, char** words, bool dollar_at_position_0
         // printf("%zu, %s\n", splitted_length[i], splitted_words[i]);
     }
 }
+
+void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_position_0, char* filename)
+{
+    FILE* fastaFile = fopen(filename, "w");
+
+    if (fastaFile == NULL) {
+        fprintf(stderr, "Error opening file: %s\n", filename);
+        return;
+    }
+
+    size_t splitted_word_count = list_size(cuts);
+    for (int i = 0; i < splitted_word_count; i++) {
+        DNASortEntry *se = list_get(cuts, i);
+        if (se->start < se->previous_end)
+        {
+            panic("The end of the word is before its start during copying.");
+        }
+        fprintf(fastaFile, ">S%d\n", i + 1); // Add a header for each sequence
+        if (dollar_at_position_0)
+        {
+            fputs("$", fastaFile); // Write the DNA sequence
+            fwrite(&(words[se->word_id][se->previous_end]), sizeof(char), (se->start - se->previous_end), fastaFile);
+            fputs("\n", fastaFile);
+        }
+        else
+        {
+            fwrite(&(words[se->word_id][se->previous_end]), sizeof(char), (se->start - se->previous_end), fastaFile);
+            fputs("\n", fastaFile); // Write the DNA sequence
+        }
+        // splitted_words[i][splitted_length[i]]='\0';
+        // printf("%zu, %s\n", splitted_length[i], splitted_words[i]);
+    }
+
+    fclose(fastaFile);
+}
