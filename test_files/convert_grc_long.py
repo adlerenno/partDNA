@@ -4,8 +4,8 @@ import sys
 def convert(input, output):
     count_smaller_symbols = 0
     symbols = 0
-    with open('./GRCh38_latest_genomic.fna') as f:
-        with open('./GRCh38_chromosom_all.fasta', 'w') as out:
+    with open(input) as f:
+        with open(output, 'w') as out:
             for line in f:
                 if line.startswith('>'):
                     if count_smaller_symbols == 0:
