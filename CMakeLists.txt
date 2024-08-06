@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.18)
 project(bwt VERSION 1.0.0 DESCRIPTION "Project converting different bwt representations")
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-stack_size,4000000")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 option(ENABLE_TIME_EVALUATION "Split time needed for construction" ON)
 option(ENABLE_VERBOSE "Outputs information about steps and progress" ON)
