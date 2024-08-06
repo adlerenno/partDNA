@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.18)
 project(bwt VERSION 1.0.0 DESCRIPTION "Project converting different bwt representations")
 
 set(CMAKE_C_STANDARD 11)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-stack_size,4000000")
+else()
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,stack-size=1000000")
+endif()
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 option(ENABLE_TIME_EVALUATION "Split time needed for construction" ON)
