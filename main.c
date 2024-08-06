@@ -56,7 +56,7 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 #ifdef VERBOSE
     printf("Get file meta of file %s.\n", input_filename);
 #endif
-    size_t max_sequence_length = 0, word_count = 0; float char_count = 0;
+    size_t max_sequence_length = 0, word_count = 0, char_count = 0;
     char** words_dna;
     size_t* length_dna;
     if (multiline_fasta)
@@ -73,14 +73,14 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
         length_dna = calloc(word_count, sizeof(size_t*));
         load_singleline_file_into_memory_dna(input_filename, words_dna, length_dna);
         max_sequence_length = length_dna[0];
-        char_count = (float) max_sequence_length;
+        char_count = max_sequence_length;
     }
 
 #ifdef VERBOSE
     printf("\tWord count before splitting: %zu\n", word_count);
     printf("\tMax length of words before splitting: %zu\n", max_sequence_length);
-    printf("\tSum length of words before splitting: %f\n", char_count);
-    printf("\tAvg length of words before splitting: %f\n", char_count / word_count);
+    printf("\tSum length of words before splitting: %zu\n", char_count);
+    printf("\tAvg length of words before splitting: %f\n", (double) char_count / (double) word_count);
     printf("Split the input now.\n");
 #endif
     if (word_count == 0)
@@ -91,19 +91,32 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 
     List *cuts = dna_find_splits(words_dna, length_dna, word_count, run_length);
 
-/*  // Use the following code to test if there is a gap in the splitted words.
+#ifdef TEST
+    // Use the following code to test if there is a gap in the split words.
     qsort(cuts->array, list_size(cuts), sizeof(DNASortEntry*), (int (*)(const void *, const void *)) compareDNAs);
+    DNASortEntry *e = list_get(cuts, 0);
+    size_t consumed_length = 0;
+    if (e->word_id != 0 || e->previous_end != 0)
+        printf("first word is not starting at word id 0, position 0 but at word id %lld, position %lld", e->word_id, e->previous_end);
     for (int i = 0; i < list_size(cuts) - 1; i++)
     {
         DNASortEntry *e = list_get(cuts, i);
         DNASortEntry *e2 = list_get(cuts, i+1);
-        if (e->start != e2->previous_end && e->word_id == e2->word_id)
+        consumed_length += e->start - e->previous_end;
+        if (e->start != e2->previous_end)
         {
-            printf("first  word %lld, prev %lld, start %lld, end %lld, next %lld\n", e->word_id, e->previous_end, e->start, e->end, e->next_start);
-            printf("second word %lld, prev %lld, start %lld, end %lld, next %lld\n", e2->word_id, e2->previous_end, e2->start, e2->end, e2->next_start);
+            printf("first  word input %lld, word output %d, prev %lld, start %lld, end %lld, next %lld\n", e->word_id, i, e->previous_end, e->start, e->end, e->next_start);
+            printf("second word input %lld, word output %d, prev %lld, start %lld, end %lld, next %lld\n", e2->word_id, i+1, e2->previous_end, e2->start, e2->end, e2->next_start);
         }
     }
-*/
+    e = list_get(cuts, list_size(cuts)-1);
+    consumed_length += e->start - e->previous_end;
+    if (e->start != char_count)
+    {
+        printf("Last interval is not ending at the words ending: %lld != %zu\n", e->start, char_count);
+    }
+    printf("Symbols in words: %zu\n", consumed_length);
+#endif //TEST
 
 #ifdef VERBOSE
     printf("\tWord count after splitting: %zu\n", list_size(cuts));
@@ -113,7 +126,7 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     //char** splitted_words = calloc(splitted_word_count, sizeof(char*));
     //size_t* splitted_length = calloc(splitted_word_count, sizeof(size_t*));
 
-    // copy_splitted_words_dna(cuts, words_dna, false, &splitted_words, &splitted_length);
+    //copy_splitted_words_dna(cuts, words_dna, false, &splitted_words, &splitted_length);
 #ifdef VERBOSE
     DNASortEntry *se0 = list_get(cuts, 0);
     size_t max_splitted_sequence_length = se0->start - se0->previous_end;
@@ -128,10 +141,16 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     }
     printf("\tMax length of words after splitting: %zu\n", max_splitted_sequence_length);
     printf("\tSum length of words after splitting: %zu\n", sum_length);
-    printf("\tAvg length of words after splitting: %f\n", ((float) sum_length) / splitted_word_count);
-    printf("\tFinished.\n");
+    printf("\tAvg length of words after splitting: %f\n", ((double) sum_length) / ((double) splitted_word_count));
+    // printf("\tFinished.\n");
+#endif //VERBOSE
+#ifdef TEST
+    return;
+#endif //TEST
+#ifdef VERBOSE
     printf("Write to output file %s.\n", output_filename);
 #endif
+    write_splitted_words_dna_to_file(cuts, words_dna, false, output_filename);
 
     for (int i = 0; i < word_count; i++)
     {
@@ -145,7 +164,6 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     }
     free(cuts);
 
-    write_splitted_words_dna_to_file(cuts, words_dna, false, output_filename);
     //write_memory_to_file_dna(output_filename, splitted_words, splitted_word_count);
 
     //for (int i = 0; i < splitted_word_count; i++)

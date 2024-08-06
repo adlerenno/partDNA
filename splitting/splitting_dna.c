@@ -16,6 +16,9 @@
 // #include "sais.h" // Implementation shipped with this package. Did not work.
 #include "sais64.h" // Implementation using the sais64 library of Yuta Mori.
 #include "listutil.h"
+#include <stdio.h>
+#include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
+#include <fcntl.h>   /* open(), creat() - and fcntl() */
 
 size_t guess_length_dna(char** words, const size_t *word_length, size_t word_count, size_t number_of_effective_splits)
 {
@@ -283,7 +286,7 @@ List *dna_find_splits(char** words, const size_t *word_length, size_t word_count
     {
         size_t zero_run_length = 0;
         DNASortEntry *last_entry = NULL;
-        for (int position = 0; position < word_length[word_id]; position++)
+        for (uint64_t position = 0; position < word_length[word_id]; position++)
         {
             switch (words[word_id][position]) {
                 case 'A':

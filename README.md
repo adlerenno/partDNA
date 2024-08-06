@@ -45,5 +45,4 @@ Usage: ./exc
 
 ## Test files
 
-To perform the tests of the [partDNA](https://arxiv.org/abs/2406.10610) Paper, use the files in the test_files directory.
-There is an additional README file.
+To perform the tests of the [partDNA](https://arxiv.org/abs/2406.10610) Paper, see the [partDNAtest](https://github.com/adlerenno/partDNAtest) repository.
