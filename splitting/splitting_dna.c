@@ -16,6 +16,7 @@
 // #include "sais.h" // Implementation shipped with this package. Did not work.
 #include "sais64.h" // Implementation using the sais64 library of Yuta Mori.
 #include "listutil.h"
+#include "constants.h"
 #include <stdio.h>
 #include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
 #include <fcntl.h>   /* open(), creat() - and fcntl() */
@@ -255,7 +256,7 @@ void check_word_dna(char *word, const size_t length)
     for (int j = 0; j < length-1; j++)
     {
         if (word[j] != 'A' && word[j] != 'C' && word[j] != 'G' && word[j] != 'T') {
-            panic("word pos %d is not 0 or 1: %c\n", j, word[j]);
+            panic("word pos %d is not ACGT: %c\n", j, word[j]);
         }
     }
     if (word[length-1] != '$'){
@@ -531,14 +532,32 @@ void copy_splitted_words_dna(List *cuts, char** words, bool dollar_at_position_0
     }
 }
 
-void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_position_0, char* filename)
+void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_position_0, char* filename, enum DIVIDE_CRITERIA divide_criteria, int divide_criteria_arg)
 {
-    FILE* fastaFile = fopen(filename, "w");
+    FILE* fastaFile;
+    int filename_counter = 0;
+    char current_file_name[120];
+    if (divide_criteria == WORD_RELATIVE)
+    {
+        divide_criteria = WORD_ABSOLUTE;
+        divide_criteria_arg = (int) ((list_size(cuts) + divide_criteria_arg - 1) / (size_t) divide_criteria_arg);
+    }
+    if (divide_criteria == NONE)
+    {
+        fastaFile = fopen(filename, "w");
+    }
+    else
+    {
+        sprintf(current_file_name, "%s%d.fa", filename, filename_counter);
+        fastaFile = fopen(current_file_name, "w");
+    }
 
     if (fastaFile == NULL) {
         fprintf(stderr, "Error opening file: %s\n", filename);
         return;
     }
+    unsigned long chars_written_to_current_file = 0;
+    unsigned long words_written_to_current_file = 0;
 
     size_t splitted_word_count = list_size(cuts);
     for (int i = 0; i < splitted_word_count; i++) {
@@ -546,6 +565,21 @@ void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_p
         if (se->start < se->previous_end)
         {
             panic("The end of the word is before its start during copying.");
+        }
+        if (divide_criteria == CHAR_ABSOLUTE && chars_written_to_current_file > divide_criteria_arg ||
+        divide_criteria == WORD_ABSOLUTE && words_written_to_current_file > divide_criteria_arg)
+        {
+            fclose(fastaFile);
+            filename_counter++;
+            sprintf(current_file_name, "%s%d.fa", filename, filename_counter);
+            fastaFile = fopen(current_file_name, "w");
+
+            if (fastaFile == NULL) {
+                fprintf(stderr, "Error opening file: %s\n", filename);
+                return;
+            }
+            words_written_to_current_file = 0;
+            chars_written_to_current_file = 0;
         }
         fprintf(fastaFile, ">S%d\n", i + 1); // Add a header for each sequence
         if (dollar_at_position_0)
@@ -559,6 +593,8 @@ void write_splitted_words_dna_to_file(List *cuts, char** words, bool dollar_at_p
             fwrite(&(words[se->word_id][se->previous_end]), sizeof(char), (se->start - se->previous_end), fastaFile);
             fputs("\n", fastaFile); // Write the DNA sequence
         }
+        chars_written_to_current_file += se->start - se->previous_end;
+        words_written_to_current_file++;
         // splitted_words[i][splitted_length[i]]='\0';
         // printf("%zu, %s\n", splitted_length[i], splitted_words[i]);
     }

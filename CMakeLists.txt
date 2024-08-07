@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(bwt VERSION 1.0.0 DESCRIPTION "Project converting different bwt representations")
+project(bwt VERSION 1.0.0 DESCRIPTION "Project converting a single BWT construction into a multi-word BWT construction problem")
 
 set(CMAKE_C_STANDARD 11)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
@@ -9,6 +9,10 @@ else()
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,stack-size=1000000")
 endif()
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+# Assuming you have a target named my_target
+# Assuming you have a target named my_target
+
+
 
 option(ENABLE_TIME_EVALUATION "Split time needed for construction" ON)
 option(ENABLE_VERBOSE "Outputs information about steps and progress" ON)
@@ -94,6 +98,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER bwt.h)
 # Create Executeable
 add_executable(exc main.c)
 add_dependencies(exc ${PROJECT_NAME}) # add library add dependency
+# target_compile_options(exc PRIVATE -O3)
 
 target_include_directories(exc PRIVATE ${INCLUDES})
 

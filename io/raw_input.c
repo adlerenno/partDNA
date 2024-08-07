@@ -19,7 +19,7 @@
 KSEQ_INIT(gzFile, gzread)
 
 
-void get_meta(const char *filename, size_t *max_sequence_length, size_t *sequence_count, size_t *char_count) { // TODO: Count number of symbols for statistic.
+void get_meta_kseq(const char *filename, size_t *max_sequence_length, size_t *sequence_count, size_t *char_count) { // TODO: Count number of symbols for statistic.
     // Find max_sequence_length and sequence_count.
     size_t length = 0, count = 0, sum_length = 0;
     kseq_t *seq;
@@ -35,6 +35,32 @@ void get_meta(const char *filename, size_t *max_sequence_length, size_t *sequenc
     *char_count = sum_length;
     kseq_destroy(seq);
     gzclose(fp);
+}
+
+void get_meta(const char *filename, size_t *max_sequence_length, size_t *sequence_count, size_t *char_count) { // TODO: Count number of symbols for statistic.
+    // Find max_sequence_length and sequence_count.
+    size_t length = 0, current_word_length = 0, count = 0, sum_length = 0;
+    FILE *fp = fopen(filename, "r"); // STEP 2: open the file handler
+    char line[1000];
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        if (line[0] == '>')
+        {
+            count++;
+            current_word_length = 0;
+        }
+        else
+        {
+            unsigned long lineLength = strlen(line);
+            current_word_length += lineLength;
+            length = length > current_word_length ? length : current_word_length;
+            sum_length += lineLength;
+        }
+
+    }
+    *max_sequence_length = length;
+    *sequence_count = count;
+    *char_count = sum_length;
+    fclose(fp);
 }
 
 // Function to read a FASTA file

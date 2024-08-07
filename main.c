@@ -2,11 +2,13 @@
 #include <getopt.h>
 #include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
 #include <fcntl.h>   /* open(), creat() - and fcntl() */
+#include <libc.h>
 #include "eval/time_consumption.h"
 #include "io/raw_input.h"
 #include "io/raw_input_dna.h"
 #include "splitting/splitting_dna.h"
 #include "io/raw_output_dna.h"
+#include "constants.h"
 
 /*
  * Generates a random bitstring.
@@ -46,7 +48,7 @@ int compareDNAs(DNASortEntry **a, DNASortEntry **b)
     return (int) ((*a)->start - (*b)->start);
 }
 
-void perform_splitting(char *input_filename, bool multiline_fasta, char *output_filename, long run_length)
+void perform_splitting(char *input_filename, enum PARSER parser, char *output_filename, long run_length, enum DIVIDE_CRITERIA divide_criteria, int divide_criteria_arg)
 {
     void *data; double cpu_time, real_time;
 #ifdef TIME_EVALUATION
@@ -59,21 +61,26 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
     size_t max_sequence_length = 0, word_count = 0, char_count = 0;
     char** words_dna;
     size_t* length_dna;
-    if (multiline_fasta)
-    {
-        get_meta(input_filename, &max_sequence_length, &word_count, &char_count);
-        words_dna = calloc(word_count, sizeof (char*));
-        length_dna = calloc(word_count, sizeof(size_t*));
-        load_multiline_file_into_memory_dna(input_filename, max_sequence_length, words_dna, length_dna, word_count);
-    }
-    else
-    {
-        word_count = 1;
-        words_dna = calloc(word_count, sizeof (char*));
-        length_dna = calloc(word_count, sizeof(size_t*));
-        load_singleline_file_into_memory_dna(input_filename, words_dna, length_dna);
-        max_sequence_length = length_dna[0];
-        char_count = max_sequence_length;
+    switch (parser) { // TODO: Avoid get_meta functions by using realloc within the read functions.
+        case KSEQ:
+            get_meta_kseq(input_filename, &max_sequence_length, &word_count, &char_count);
+            words_dna = calloc(word_count, sizeof (char*));
+            length_dna = calloc(word_count, sizeof(size_t*));
+            load_multiline_file_into_memory_dna_kseq(input_filename, max_sequence_length, words_dna, length_dna, word_count);
+            break;
+        case SINGLE:
+            word_count = 1;
+            words_dna = calloc(word_count, sizeof (char*));
+            length_dna = calloc(word_count, sizeof(size_t*));
+            load_singleline_file_into_memory_dna(input_filename, words_dna, length_dna);
+            max_sequence_length = length_dna[0];
+            char_count = max_sequence_length;
+            break;
+        case MULTI:
+            get_meta(input_filename, &max_sequence_length, &word_count, &char_count);
+            words_dna = calloc(word_count, sizeof (char*));
+            length_dna = calloc(word_count, sizeof(size_t*));
+            load_multiline_file_into_memory_dna(input_filename, max_sequence_length, words_dna, length_dna, word_count);
     }
 
 #ifdef VERBOSE
@@ -150,7 +157,7 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 #ifdef VERBOSE
     printf("Write to output file %s.\n", output_filename);
 #endif
-    write_splitted_words_dna_to_file(cuts, words_dna, false, output_filename);
+    write_splitted_words_dna_to_file(cuts, words_dna, false, output_filename, divide_criteria, divide_criteria_arg);
 
     for (int i = 0; i < word_count; i++)
     {
@@ -184,11 +191,13 @@ void perform_splitting(char *input_filename, bool multiline_fasta, char *output_
 
 int main(int argc, char **argv) {
     int opt;
-    bool multiline_fasta = true;
     int run_length = 3;
     char * filename = "";
     char * output_filename = "";
-    while ((opt = getopt(argc, argv, "hdi:o:r:")) != -1) {
+    enum PARSER parser = MULTI;
+    enum DIVIDE_CRITERIA dc = NONE;
+    int dc_arg = 0;
+    while ((opt = getopt(argc, argv, "hi:o:r:p:t:s:")) != -1) {
         switch (opt) {
             case 'i':
                 filename = optarg;
@@ -213,16 +222,67 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 break;
-            case 'd':
-                multiline_fasta = false;
+            case 'p':
+                if (strcmp(optarg, "single") == 0)
+                {
+                    parser = SINGLE;
+                }
+                if (strcmp(optarg, "kseq") == 0)
+                {
+                    parser = KSEQ;
+                }
+                if (strcmp(optarg, "multi") == 0)
+                {
+                    parser = MULTI;
+                }
+                break;
+            case 't':
+                if (strcmp(optarg, "none") == 0)
+                {
+                    dc = NONE;
+                }
+                if (strcmp(optarg, "word_absolute") == 0)
+                {
+                    dc = WORD_ABSOLUTE;
+                    if (dc_arg == 0)
+                        dc_arg = 3000;
+                }
+                if (strcmp(optarg, "char_absolute") == 0)
+                {
+                    dc = CHAR_ABSOLUTE;
+                    if (dc_arg == 0)
+                        dc_arg = 3000000;
+                }
+                if (strcmp(optarg, "word_relative") == 0)
+                {
+                    dc = WORD_RELATIVE;
+                    if (dc_arg == 0)
+                        dc_arg = 5;
+                }
+                if (strcmp(optarg, "char_relative") == 0)
+                {
+                    printf("Unsupported in current implementation.");
+                    return -1;
+                    dc = CHAR_RELATIVE;
+                    if (dc_arg == 0)
+                        dc_arg = 5;
+                }
+                break;
+            case 's':
+                dc_arg = atoi(optarg);
+                if (dc_arg <= 0)
+                {
+                    printf("Invalid argument for dividing output file.");
+                    return -1;
+                }
                 break;
             case 'h':
             default:
-                printf("Usage: \n\t./exc [-i <input_file>] [-o <output_file>] [-r <run_length>] [-d] \nor\n\t./exc -h\n\n");
+                printf("Usage: \n\t./exc [-i <input_file>] [-o <output_file>] [-r <run_length>] [-parser {multi|kseq|single}] [-t] \nor\n\t./exc -h\n\n");
                 printf("Default parameters: \nrun_length: %d\n\n", run_length);
                 return 0;
         }
     }
-    perform_splitting(filename, multiline_fasta, output_filename, run_length);
+    perform_splitting(filename, parser, output_filename, run_length, dc, dc_arg);
     return 0;
 }

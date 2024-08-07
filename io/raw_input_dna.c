@@ -16,7 +16,7 @@
 
 KSEQ_INIT(gzFile, gzread)
 
-void load_multiline_file_into_memory_dna(const char *filename, size_t max_sequence_length, char **words, size_t *word_length, size_t word_count) {
+void load_multiline_file_into_memory_dna_kseq(const char *filename, size_t max_sequence_length, char **words, size_t *word_length, size_t word_count) {
     kseq_t *seq;
     gzFile fp = gzopen(filename, "r"); // STEP 2: open the file handler
     seq = kseq_init(fp); // STEP 3: initialize seq
@@ -123,4 +123,112 @@ void load_singleline_file_into_memory_dna(const char *filename, char **word, siz
     word[0][sequenceLength] = '\0';
     *word_length = sequenceLength;
     fclose(fastaFile);
+}
+
+void load_multiline_file_into_memory_dna(const char *filename, size_t max_sequence_length, char **word, size_t *word_length, size_t word_count) {
+    {
+        FILE *fastaFile = fopen(filename, "r");
+
+        if (fastaFile == NULL) {
+            panic("Error opening file: %s\n", filename);
+            return;
+        }
+
+        // Initialize variables
+        char line[1000];
+        unsigned long start_capacity = 10000;
+        unsigned long current_max_sequence_length = 0;
+
+        unsigned long current_word_count = 0;
+
+        unsigned long current_sequence_length = 0;
+        unsigned long current_sequence_capacity = start_capacity;
+        word[current_word_count] = (char *) malloc(current_sequence_capacity * sizeof(char));
+
+        // Skip the first header line (header line starting with '>')
+        while (fgets(line, sizeof(line), fastaFile) != NULL && line[0] != '>') {}
+
+        // Read the DNA sequence from the file
+        while (fgets(line, sizeof(line), fastaFile) != NULL) {
+
+            if (line[0] == '>') {
+                word[current_word_count] = realloc(word[current_word_count],
+                                                   current_sequence_length + 2); // shortening to length.
+                word[current_word_count][current_sequence_length++] = '$';
+                word[current_word_count][current_sequence_length] = '\0';
+                word_length[current_word_count] = current_sequence_length;
+                current_max_sequence_length = current_max_sequence_length > current_sequence_length ? current_max_sequence_length : current_sequence_length;
+
+                current_word_count++;
+
+                current_sequence_length = 0;
+                current_sequence_capacity = start_capacity;
+                word[current_word_count] = (char *) malloc(current_sequence_capacity * sizeof(char));
+                continue; // Skip lines with > at the first position.
+            }
+
+            // Remove newline characters from the line
+            unsigned long lineLength = strlen(line);
+            if (line[lineLength - 1] == '\n') {
+                line[lineLength - 1] = '\0';
+                lineLength--;
+            }
+
+
+            if (lineLength + current_sequence_length > current_sequence_capacity) {
+                current_sequence_capacity *= 2;
+                void *new = realloc(word[current_word_count], current_sequence_capacity);
+                if (new != NULL) {
+                    word[current_word_count] = new;
+                } else {
+                    panic("Out of Memory. Cannot load DNA-string.");
+                }
+            }
+            // Copy the line to the DNA sequence buffer
+            // strcpy(word[0] + sequenceLength, line);
+            // sequenceLength += lineLength - 1;  // Exclude the newline character
+            for (int64_t i = 0; i < lineLength; i++)  //convert data-block.
+            {
+                switch (line[i]) {
+                    case 'A':
+                    case 'C':
+                    case 'G':
+                    case 'T':
+                        word[current_word_count][current_sequence_length++] = line[i];
+                        break;
+                    case 'a':
+                        word[current_word_count][current_sequence_length++] = 'A';
+                        break;
+                    case 'c':
+                        word[current_word_count][current_sequence_length++] = 'C';
+                        break;
+                    case 'g':
+                        word[current_word_count][current_sequence_length++] = 'G';
+                        break;
+                    case 't':
+                        word[current_word_count][current_sequence_length++] = 'T';
+                        break;
+                    case 'N':
+                    case 'M':
+                    case 'R':
+                    case 'Y':
+                    case 'W':
+                    case 'K':
+                    case 'B':
+                    case 'S':
+                        break;
+                    default:
+                        panic("Not allowed character in input file: %c at position %lld", line[i], i);
+                }
+            }
+        }
+        word[current_word_count] = realloc(word[current_word_count],
+                                           current_sequence_length + 2); // shortening to length.
+        word[current_word_count][current_sequence_length++] = '$';
+        word[current_word_count][current_sequence_length] = '\0';
+        word_length[current_word_count] = current_sequence_length;
+
+        current_word_count++;
+        fclose(fastaFile);
+    }
 }
