@@ -2,7 +2,7 @@
 #include <getopt.h>
 #include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
 #include <fcntl.h>   /* open(), creat() - and fcntl() */
-#include <libc.h>
+#include <string.h>
 #include "eval/time_consumption.h"
 #include "io/raw_input.h"
 #include "io/raw_input_dna.h"
