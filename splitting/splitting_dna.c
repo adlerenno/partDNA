@@ -17,6 +17,7 @@
 #include "sais64.h" // Implementation using the sais64 library of Yuta Mori.
 #include "listutil.h"
 #include "constants.h"
+#include "ringqueue.h"
 #include <stdio.h>
 #include <unistd.h>  /* Many POSIX functions (but not all, by a large margin) */
 #include <fcntl.h>   /* open(), creat() - and fcntl() */
@@ -242,6 +243,198 @@ void radix_for_splitting_dna(DNASortEntry **sorted_lowest_run_length_rotations, 
     }
 }
 
+typedef struct {
+    DNASortEntry **sorted_lowest_run_length_rotations;
+    size_t length;
+    size_t shift;
+} RadixListEntry;
+
+RadixListEntry *radix_list_entry_create(DNASortEntry **sorted_lowest_run_length_rotations, size_t length, size_t shift)
+{
+    RadixListEntry *entry = malloc(sizeof(RadixListEntry));
+    if (entry == NULL)
+        panic("Not enough space to alloc RadixListEntry.");
+    entry->sorted_lowest_run_length_rotations = sorted_lowest_run_length_rotations;
+    entry->length = length;
+    entry->shift = shift;
+    return entry;
+}
+
+void radix_list_entry_destroy(RadixListEntry *entry) { free(entry); }
+
+void flatten_radix_for_splitting_dna(DNASortEntry **sorted_lowest_run_length_rotations_param, size_t length_param, char **words, const size_t *word_length, size_t word_count, size_t shift_param, bool *need_sais)
+{
+    RingQueue *to_sort_intervals = malloc(sizeof(RingQueue));
+    if (to_sort_intervals == NULL)
+        panic("Not enough space to alloc RingQueue.");
+    ringqueue_init(to_sort_intervals, -1);
+    ringqueue_enqueue(to_sort_intervals, radix_list_entry_create(sorted_lowest_run_length_rotations_param, length_param, shift_param));
+    RadixListEntry *current_radix_entry;
+
+    List dollar_ret_list, ret_list,
+            to_sort_rotations_A_list,
+            to_sort_rotations_C_list,
+            to_sort_rotations_G_list,
+            to_sort_rotations_T_list,
+            to_sort_rotations_dollars_list;
+
+    List *dollar_ret = &dollar_ret_list, *ret = &ret_list,
+            *to_sort_rotations_A = &to_sort_rotations_A_list,
+            *to_sort_rotations_C = &to_sort_rotations_C_list,
+            *to_sort_rotations_G = &to_sort_rotations_G_list,
+            *to_sort_rotations_T = &to_sort_rotations_T_list,
+            *to_sort_rotations_dollar = &to_sort_rotations_dollars_list;
+
+    list_init(dollar_ret);
+    list_init(ret);
+    list_init(to_sort_rotations_A);
+    list_init(to_sort_rotations_C);
+    list_init(to_sort_rotations_G);
+    list_init(to_sort_rotations_T);
+    list_init(to_sort_rotations_dollar);
+
+    while (!ringqueue_empty(to_sort_intervals)) {
+        current_radix_entry = ringqueue_dequeue(to_sort_intervals);
+
+        // prepare for the next level.
+        for (int i = 0; i < current_radix_entry->length; i++) {
+            DNASortEntry *dna_sort_entry = current_radix_entry->sorted_lowest_run_length_rotations[i];
+            if (dna_sort_entry->end + current_radix_entry->shift <= dna_sort_entry->next_start) {
+                switch (words[dna_sort_entry->word_id][dna_sort_entry->end + current_radix_entry->shift]) {
+                    case '$':
+                        list_append(to_sort_rotations_dollar, dna_sort_entry);
+                        break;
+                    case 'A':
+                        list_append(to_sort_rotations_A, dna_sort_entry);
+                        break;
+                    case 'C':
+                        list_append(to_sort_rotations_C, dna_sort_entry);
+                        break;
+                    case 'G':
+                        list_append(to_sort_rotations_G, dna_sort_entry);
+                        break;
+                    case 'T':
+                        list_append(to_sort_rotations_T, dna_sort_entry);
+                        break;
+                }
+            } else {
+                if (dna_sort_entry->name < 0) {
+                    list_append(dollar_ret, dna_sort_entry);
+                } else {
+                    list_append(ret, dna_sort_entry);
+                }
+            }
+        }
+
+        // store the number of equal substrings in the name field.
+        sort_entrys_by_name_dna((DNASortEntry **) ret->array, list_size(ret), false);
+        sort_entrys_by_name_dna((DNASortEntry **) dollar_ret->array, list_size(dollar_ret), false);
+        list_extend(dollar_ret, ret); // The 0 with a $ following are smaller than the 0 with a 1.
+        // list ret can be reset here.
+
+        if (list_size(dollar_ret) > 0) {
+            for (size_t i = list_size(dollar_ret) - 1; i > 0; i--) {
+                DNASortEntry *current = list_get(dollar_ret, i);
+                if (current->name == ((DNASortEntry *) list_get(dollar_ret, i - 1))->name) {
+                    current->name = 1;
+                    *need_sais = true; //If at least two substrings are completely equal.
+                } else {
+                    current->name = 0;
+                }
+            }
+            ((DNASortEntry *) list_get(dollar_ret, 0))->name = 0;
+        }
+
+        if (list_size(to_sort_rotations_dollar) > 0) {
+            for (int i = 0; i < list_size(to_sort_rotations_dollar); i++) {
+                DNASortEntry *entry = list_get(to_sort_rotations_dollar, i);
+                if (entry->next_start != word_length[entry->word_id]) {
+                    list_append(dollar_ret, entry);
+                }
+            }
+        }
+        // List_clear of to_sort_rotations_dollar could be done here.
+
+        // end Phase 1: Inline buckets to sorted_lowest_run_length_rotations:
+        size_t i = 0, dollars = list_size(dollar_ret),
+                As = list_size(to_sort_rotations_A),
+                Cs = list_size(to_sort_rotations_C),
+                Gs = list_size(to_sort_rotations_G),
+                Ts = list_size(to_sort_rotations_T);
+        memcpy(current_radix_entry->sorted_lowest_run_length_rotations + i, dollar_ret->array, sizeof(DNASortEntry *) * dollars);
+        i += dollars;
+        memcpy(current_radix_entry->sorted_lowest_run_length_rotations + i, to_sort_rotations_A->array, sizeof(DNASortEntry *) * As);
+        i += As;
+        memcpy(current_radix_entry->sorted_lowest_run_length_rotations + i, to_sort_rotations_C->array, sizeof(DNASortEntry *) * Cs);
+        i += Cs;
+        memcpy(current_radix_entry->sorted_lowest_run_length_rotations + i, to_sort_rotations_G->array, sizeof(DNASortEntry *) * Gs);
+        i += Gs;
+        memcpy(current_radix_entry->sorted_lowest_run_length_rotations + i, to_sort_rotations_T->array, sizeof(DNASortEntry *) * Ts);
+        i += Ts;
+
+        // termination
+
+        // Phase 2: Recursive sort
+        if (As == 1)
+        {
+            ((DNASortEntry *) list_get(to_sort_rotations_A, 0))->name = 0;
+        }
+        if (As > 1) {
+            ringqueue_enqueue(to_sort_intervals, radix_list_entry_create(current_radix_entry->sorted_lowest_run_length_rotations + dollars, As, current_radix_entry->shift + 1));
+        }
+
+        if (Cs == 1)
+        {
+            ((DNASortEntry *) list_get(to_sort_rotations_C, 0))->name = 0;
+        }
+        if (Cs > 1) {
+            ringqueue_enqueue(to_sort_intervals, radix_list_entry_create(current_radix_entry->sorted_lowest_run_length_rotations + dollars + As, Cs, current_radix_entry->shift+1));
+        }
+
+        if (Gs == 1)
+        {
+            ((DNASortEntry *) list_get(to_sort_rotations_G, 0))->name = 0;
+        }
+        if (Gs > 1) {
+            ringqueue_enqueue(to_sort_intervals, radix_list_entry_create(current_radix_entry->sorted_lowest_run_length_rotations + dollars + As + Cs, Gs, current_radix_entry->shift+1));
+        }
+
+        if (Ts == 1)
+        {
+            ((DNASortEntry *) list_get(to_sort_rotations_T, 0))->name = 0;
+        }
+        if (Ts > 1) {
+            ringqueue_enqueue(to_sort_intervals, radix_list_entry_create(current_radix_entry->sorted_lowest_run_length_rotations + dollars + As + Cs + Gs, Ts, current_radix_entry->shift+1));
+        }
+
+        // Update to reset for next loop.
+        radix_list_entry_destroy(current_radix_entry);
+        //list_clear(dollar_ret);
+        dollar_ret->size = 0;
+        //list_clear(ret);
+        ret->size = 0;
+        //list_clear(to_sort_rotations_dollar);
+        to_sort_rotations_dollar->size = 0;
+        //list_clear(to_sort_rotations_A);
+        to_sort_rotations_A->size = 0;
+        //list_clear(to_sort_rotations_C);
+        to_sort_rotations_C->size = 0;
+        //list_clear(to_sort_rotations_G);
+        to_sort_rotations_G->size = 0;
+        //list_clear(to_sort_rotations_T);
+        to_sort_rotations_T->size = 0;
+    }
+
+    list_destroy(dollar_ret);
+    list_destroy(ret);
+    list_destroy(to_sort_rotations_dollar);
+    list_destroy(to_sort_rotations_A);
+    list_destroy(to_sort_rotations_C);
+    list_destroy(to_sort_rotations_G);
+    list_destroy(to_sort_rotations_T);
+    ringqueue_destroy(to_sort_intervals);
+}
+
 struct DNASortEntry *create_dna_sort_entry(size_t start, size_t end, size_t word_id) {
     DNASortEntry *entry = malloc(sizeof(DNASortEntry));
     entry->start = start;
@@ -270,10 +463,10 @@ void check_word_dna(char *word, const size_t length)
 List *dna_find_splits(char** words, const size_t *word_length, size_t word_count, size_t run_length_lowest_cut)
 {
     // Check the correct word pattern. Searched too many errors regarding this...
-    for (int i = 0; i < word_count; i++)
-    {
-        check_word_dna(words[i], word_length[i]);
-    }
+    //for (int i = 0; i < word_count; i++)
+    //{
+    //    check_word_dna(words[i], word_length[i]);
+    //}
 
     // Phase 1c: Find all positions of 0-Runs of length exactly run_length_lowest_cut
     List *ret = malloc(sizeof(List));
@@ -368,7 +561,7 @@ List *dna_find_splits(char** words, const size_t *word_length, size_t word_count
     for (size_t i = 0; i < list_size(&to_sort_rotations); i++) {
         list_append(sorted_lowest_run_length_rotations, list_get(&to_sort_rotations, i)); // TODO: Replace with list_clone command.
     }
-    radix_for_splitting_dna((DNASortEntry **) sorted_lowest_run_length_rotations->array, list_size(&to_sort_rotations), words, word_length, word_count, 0, &need_sais);
+    flatten_radix_for_splitting_dna((DNASortEntry **) sorted_lowest_run_length_rotations->array, list_size(&to_sort_rotations), words, word_length, word_count, 0, &need_sais);
     sorted_lowest_run_length_rotations->size -= word_count; // We omit during the sort exactly the SortEntries pointing towards a $-symbol
 
     if (need_sais)

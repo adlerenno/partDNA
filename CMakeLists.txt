@@ -27,6 +27,8 @@ set(SOURCES
         collections/list.h
         collections/listutil.c
         collections/listutil.h
+        collections/ringqueue.c
+        collections/ringqueue.h
         io/kseq.h
         io/raw_input.c
         io/raw_input.h
