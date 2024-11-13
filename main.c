@@ -233,6 +233,8 @@ int main(int argc, char **argv) {
                 }
                 if (strcmp(optarg, "multi") == 0)
                 {
+                    printf("multi: Unsupported in current implementation.");
+                    return -1;
                     parser = MULTI;
                 }
                 break;
@@ -261,7 +263,7 @@ int main(int argc, char **argv) {
                 }
                 if (strcmp(optarg, "char_relative") == 0)
                 {
-                    printf("Unsupported in current implementation.");
+                    printf("char_relative: Unsupported in current implementation.");
                     return -1;
                     dc = CHAR_RELATIVE;
                     if (dc_arg == 0)
@@ -278,7 +280,7 @@ int main(int argc, char **argv) {
                 break;
             case 'h':
             default:
-                printf("Usage: \n\t./exc [-i <input_file>] [-o <output_file>] [-r <run_length>] [-parser {multi|kseq|single}] [-t] \nor\n\t./exc -h\n\n");
+                printf("Usage: \n\t./exc [-i <input_file>] [-o <output_file>] [-r <run_length>] [-parser {single|kseq|multi}] [-t {none|word_absolute|word_relative|char_absolute}] [-s <divide_argument>] \nor\n\t./exc -h\n\n");
                 printf("Default parameters: \nrun_length: %d\n\n", run_length);
                 return 0;
         }

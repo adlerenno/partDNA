@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(bwt VERSION 1.0.0 DESCRIPTION "Project converting a single BWT construction into a multi-word BWT construction problem")
+project(partDNAlib VERSION 1.0.0 DESCRIPTION "Project converting a single BWT construction into a multi-word BWT construction problem")
 
 set(CMAKE_C_STANDARD 11)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
@@ -98,10 +98,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER bwt.h)
 #        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # Create Executeable
-add_executable(exc main.c)
-add_dependencies(exc ${PROJECT_NAME}) # add library add dependency
+add_executable(partDNA main.c)
+add_dependencies(partDNA ${PROJECT_NAME}) # add library add dependency
 # target_compile_options(exc PRIVATE -O3)
 
-target_include_directories(exc PRIVATE ${INCLUDES})
+target_include_directories(partDNA PRIVATE ${INCLUDES})
 
-target_link_libraries(exc PRIVATE ${PROJECT_NAME})
+target_link_libraries(partDNA PRIVATE ${PROJECT_NAME})
